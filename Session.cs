@@ -4,15 +4,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace demoA
+namespace demo
 {
-    internal static class CurrentSession
+    internal static class CacheSession
     {
-        public static Session CurrentUser { get; set; }
+        public static string connectionString = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=demo;Integrated Security=true";
+        public static Session user { get; set; }
     }
     internal class Session
     {
-        public UserRole Role { get; set; } = UserRole.Guest;
+        public UserRole Role { get; set; }
         public string SurName { get; set; }
         public string FirstName { get; set; }
         public string MiddleName { get; set; }
