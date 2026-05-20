@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace demoA.Properties
+namespace demo.Properties
 {
 
 
