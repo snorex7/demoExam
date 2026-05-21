@@ -1,21 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Data.SqlClient;
 using System.Drawing;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using static demo.Session;
+using static demoA.Session;
 
-namespace demo
+namespace demoA
 {
     public partial class Products : Form
     {
-        private bool filter = false;
-        private bool filterload = false;
+        static string connectionString =
+            @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=DemoExam;Integrated Security=true";
+
+        private bool canUseFilters = false;
+        private bool filtersAreLoading = false;
+
         public Products()
         {
             InitializeComponent();
@@ -23,171 +22,48 @@ namespace demo
 
         private void Products_Load(object sender, EventArgs e)
         {
-            SetupAccess();
-            SetupFilter();
-
-            LoadProducts();
-
-            if (CacheSession.user != null)
+            if (CurrentSession.CurrentUser != null)
             {
-                if (CacheSession.user.Role == UserRole.Guest)
+                if (CurrentSession.CurrentUser.Role == UserRole.Guest)
                 {
-                    labelCurrentUser.Text = "Пользователь: Гость";
+                    labelUser.Text = "Пользователь: Гость";
                 }
                 else
                 {
-                    labelCurrentUser.Text = $"Пользователь: {CacheSession.user.SurName} {CacheSession.user.FirstName} {CacheSession.user.MiddleName}";
+                    labelUser.Text =
+                        $"Пользователь: {CurrentSession.CurrentUser.SurName} {CurrentSession.CurrentUser.FirstName} {CurrentSession.CurrentUser.MiddleName}";
                 }
             }
+
+            SetupRoleAccess();
+            SetupFilterControls();
+
+            LoadProducts();
         }
 
-        private void SetupAccess()
+        private void SetupRoleAccess()
         {
-            UserRole role = CacheSession.user == null ? UserRole.Guest : CacheSession.user.Role;
+            UserRole role = CurrentSession.CurrentUser == null ? UserRole.Guest : CurrentSession.CurrentUser.Role;
 
-            filter = role == UserRole.Manager || role == UserRole.Admin;
+            canUseFilters = role == UserRole.Manager || role == UserRole.Admin;
 
-            textBoxSearch.Enabled = filter;
-
+            textBoxSearch.Enabled = canUseFilters;
             if (textBoxSearch.Enabled == false)
             {
                 textBoxSearch.BackColor = Color.LightGray;
                 textBoxSearch.Text = "Недоступно";
             }
+            comboBoxSupplier.Enabled = canUseFilters;
+            comboBoxRemain.Enabled = canUseFilters;
 
-            comboBoxSupplier.Enabled = filter;
-            comboBoxRemain.Enabled = filter;
-
-            buttonOrders.Visible = filter;
-
-            if (CacheSession.user.Role == Session.UserRole.Admin)
-                buttonAddProduct.Visible = true;
+            btnOrders.Visible = canUseFilters;
+            if (CurrentSession.CurrentUser.Role == Session.UserRole.Admin)
+                btnAddProduct.Visible = true;
         }
 
-        private void buttonExitUser_Click(object sender, EventArgs e)
+        private void SetupFilterControls()
         {
-            CacheSession.user = null;
-
-            new Auth().Show();
-
-            this.Close();
-        }
-
-        private void LoadProducts()
-        {
-            flowLayoutListProducts.Controls.Clear();
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(CacheSession.connectionString))
-                {
-                    connection.Open();
-
-                    StringBuilder sql = new StringBuilder();
-
-                    sql.Append(@"
-                        SELECT
-                            [id товара] AS ProductId,
-                            [Категория товара] AS Category,
-                            [Наименование товара] AS ProductName,
-                            [Описание товара] AS Description,
-                            [Производитель] AS Manufacturer,
-                            [Поставщик] AS Supplier,
-                            [Цена] AS Price,
-                            [Единица измерения] AS Unit,
-                            [Кол-во на складе] AS Count,
-                            [Действующая скидка] AS Discount,
-                            [Фото] AS Photo
-                        FROM [Товар]
-                        WHERE 1 = 1
-                    ");
-
-                    using (SqlCommand cmd = new SqlCommand())
-                    {
-                        cmd.Connection = connection;
-
-                        if (filter)
-                        {
-                            AddSearchCondition(sql, cmd);
-                            AddSupplierFilter(sql, cmd);
-                            AddSort(sql);
-                        }
-                        else
-                        {
-                            sql.Append(" ORDER BY [Наименование товара]");
-                        }
-
-                        cmd.CommandText = sql.ToString();
-
-                        using (SqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                ProductItem card = new ProductItem();
-
-                                card.SetProductData(
-                                    reader["ProductId"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ProductId"]),
-                                    Convert.ToString(reader["Category"]),
-                                    Convert.ToString(reader["ProductName"]),
-                                    Convert.ToString(reader["Description"]),
-                                    Convert.ToString(reader["Manufacturer"]),
-                                    Convert.ToString(reader["Supplier"]),
-                                    reader["Price"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["Price"]),
-                                    Convert.ToString(reader["Unit"]),
-                                    reader["Count"] == DBNull.Value ? 0 : Convert.ToInt32(reader["Count"]),
-                                    reader["Discount"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["Discount"]),
-                                    Convert.ToString(reader["Photo"])
-                                );
-
-                                if (CacheSession.user.Role == Session.UserRole.Admin)
-                                {
-                                    card.ProductSelect += ProductSelect;
-                                }
-
-                                flowLayoutListProducts.Controls.Add(card);
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    "Ошибка загрузки товаров:\n" + ex.Message,
-                    "Ошибка",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
-            }
-        }
-
-        private void ProductSelect(object sender, EventArgs e)
-        {
-            ProductItem card = sender as ProductItem;
-
-            if (card == null)
-                return;
-
-            using (ProductItemEdit form = new ProductItemEdit(card.ProductId))
-            {
-                if (form.ShowDialog() == DialogResult.OK)
-                {
-                    LoadProducts();
-                }
-            }
-        }
-
-        private void FilterChanged(object sender, EventArgs e)
-        {
-            if (filterload)
-                return;
-
-            LoadProducts();
-        }
-
-        private void SetupFilter()
-        {
-            filterload = true;
+            filtersAreLoading = true;
 
             comboBoxRemain.Items.Clear();
             comboBoxRemain.Items.Add("Без сортировки");
@@ -197,7 +73,7 @@ namespace demo
 
             LoadSuppliers();
 
-            filterload = false;
+            filtersAreLoading = false;
         }
 
         private void LoadSuppliers()
@@ -207,7 +83,7 @@ namespace demo
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(CacheSession.connectionString))
+                using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
 
@@ -237,6 +113,118 @@ namespace demo
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error
                 );
+            }
+        }
+
+        private void FilterChanged(object sender, EventArgs e)
+        {
+            if (filtersAreLoading)
+                return;
+
+            LoadProducts();
+        }
+
+        private void LoadProducts()
+        {
+            flowLayoutProducts.Controls.Clear();
+
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    StringBuilder sql = new StringBuilder();
+
+                    sql.Append(@"
+                        SELECT
+                            [id товара] AS ProductId,
+                            [Категория товара] AS Category,
+                            [Наименование товара] AS ProductName,
+                            [Описание товара] AS Description,
+                            [Производитель] AS Manufacturer,
+                            [Поставщик] AS Supplier,
+                            [Цена] AS Price,
+                            [Единица измерения] AS Unit,
+                            [Кол-во на складе] AS Count,
+                            [Действующая скидка] AS Discount,
+                            [Фото] AS Photo
+                        FROM [Товар]
+                        WHERE 1 = 1
+                    ");
+
+                    using (SqlCommand cmd = new SqlCommand())
+                    {
+                        cmd.Connection = connection;
+
+                        if (canUseFilters)
+                        {
+                            AddSearchCondition(sql, cmd);
+                            AddSupplierFilter(sql, cmd);
+                            AddSort(sql);
+                        }
+                        else
+                        {
+                            sql.Append(" ORDER BY [Наименование товара]");
+                        }
+
+                        cmd.CommandText = sql.ToString();
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                ProductCard card = new ProductCard();
+
+                                card.SetProductData(
+                                    reader["ProductId"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ProductId"]),
+                                    Convert.ToString(reader["Category"]),
+                                    Convert.ToString(reader["ProductName"]),
+                                    Convert.ToString(reader["Description"]),
+                                    Convert.ToString(reader["Manufacturer"]),
+                                    Convert.ToString(reader["Supplier"]),
+                                    reader["Price"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["Price"]),
+                                    Convert.ToString(reader["Unit"]),
+                                    reader["Count"] == DBNull.Value ? 0 : Convert.ToInt32(reader["Count"]),
+                                    reader["Discount"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["Discount"]),
+                                    Convert.ToString(reader["Photo"])
+                                );
+
+                                if (CurrentSession.CurrentUser.Role == Session.UserRole.Admin)
+                                {
+                                    card.ProductSelected += ProductSelected;
+                                }
+
+                                flowLayoutProducts.Controls.Add(card);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Ошибка загрузки товаров:\n" + ex.Message,
+                    "Ошибка",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+            }
+        }
+
+        private void ProductSelected(object sender, EventArgs e)
+        {
+            ProductCard card = sender as ProductCard;
+
+            if (card == null)
+                return;
+
+            using (ProductEdit form = new ProductEdit(card.ProductId))
+            {
+                if (form.ShowDialog() == DialogResult.OK)
+                {
+                    LoadProducts();
+                }
             }
         }
 
@@ -281,13 +269,13 @@ namespace demo
             if (comboBoxSupplier.SelectedItem == null)
                 return;
 
-            string selectSupplier = comboBoxSupplier.SelectedItem.ToString();
+            string selectedSupplier = comboBoxSupplier.SelectedItem.ToString();
 
-            if (selectSupplier == "Все поставщики")
+            if (selectedSupplier == "Все поставщики")
                 return;
 
             sql.Append(" AND [Поставщик] = @supplier");
-            cmd.Parameters.AddWithValue("@supplier", selectSupplier);
+            cmd.Parameters.AddWithValue("@supplier", selectedSupplier);
         }
 
         private void AddSort(StringBuilder sql)
@@ -298,13 +286,13 @@ namespace demo
                 return;
             }
 
-            string selectSort = comboBoxRemain.SelectedItem.ToString();
+            string selectedSort = comboBoxRemain.SelectedItem.ToString();
 
-            if (selectSort == "По возрастанию")
+            if (selectedSort == "По возрастанию")
             {
                 sql.Append(" ORDER BY [Кол-во на складе] ASC");
             }
-            else if (selectSort == "По убыванию")
+            else if (selectedSort == "По убыванию")
             {
                 sql.Append(" ORDER BY [Кол-во на складе] DESC");
             }
@@ -314,15 +302,31 @@ namespace demo
             }
         }
 
-        private void buttonAddProduct_Click(object sender, EventArgs e)
+        private void btnExitUser_Click(object sender, EventArgs e)
         {
-            using (ProductItemEdit form = new ProductItemEdit())
+            CurrentSession.CurrentUser = null;
+
+            new Login().Show();
+
+            this.Close();
+        }
+
+        private void btnAddProduct_Click(object sender, EventArgs e)
+        {
+            using (ProductEdit form = new ProductEdit())
             {
                 if (form.ShowDialog() == DialogResult.OK)
                 {
                     LoadProducts();
                 }
             }
+        }
+
+        private void btnOrders_Click(object sender, EventArgs e)
+        {
+            new Orders().Show();
+
+            this.Close();
         }
     }
 }

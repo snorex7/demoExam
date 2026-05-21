@@ -6,43 +6,46 @@ using System.Data.SqlClient;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace demo
+namespace demoA
 {
-    public partial class ProductItemEdit : Form
+    public partial class ProductEdit : Form
     {
+        static string connectionString = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=DemoExam;Integrated Security=true";
+
         private int productId;
         private string currentPhotoPath = "";
         private string selectedPhotoPath = "";
-        public ProductItemEdit(int productId)
+
+        public ProductEdit(int productId)
         {
             InitializeComponent();
 
             this.productId = productId;
 
             Text = "Редактирование товара";
-            buttonPicture.Text = "Изменить картинку";
-            buttonDelete.Visible = true;
+            btnDelete.Visible = true;
 
-            LoadComboBox();
-            LoadProduct();
+            LoadComboBoxes();
+            LoadProductData();
         }
 
-        public ProductItemEdit()
+        public ProductEdit()
         {
             InitializeComponent();
 
             Text = "Добавление товара";
-            textBoxID.Visible = false;
+            textID.Visible = false;
             labelID.Visible = false;
 
-            LoadComboBox();
+            LoadComboBoxes();
         }
 
-        private void LoadComboBox()
+        private void LoadComboBoxes()
         {
             LoadComboBoxValues(comboBoxCategory, "[Категория товара]");
             LoadComboBoxValues(comboBoxManufacturer, "[Производитель]");
@@ -54,7 +57,7 @@ namespace demo
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(CacheSession.connectionString))
+                using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
 
@@ -90,11 +93,11 @@ namespace demo
             }
         }
 
-        private void LoadProduct()
+        private void LoadProductData()
         {
             try
             {
-                using (SqlConnection connection = new SqlConnection(CacheSession.connectionString))
+                using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
 
@@ -123,12 +126,12 @@ namespace demo
                         {
                             if (reader.Read())
                             {
-                                textBoxID.Text = Convert.ToString(reader["id товара"]);
-                                textBoxArticle.Text = Convert.ToString(reader["Артикул"]);
-                                textBoxName.Text = Convert.ToString(reader["Наименование товара"]);
-                                textBoxUnit.Text = Convert.ToString(reader["Единица измерения"]);
-                                textBoxSupplier.Text = Convert.ToString(reader["Поставщик"]);
-                                richTextBoxDescription.Text = Convert.ToString(reader["Описание товара"]);
+                                textID.Text = Convert.ToString(reader["id товара"]);
+                                textArticle.Text = Convert.ToString(reader["Артикул"]);
+                                textName.Text = Convert.ToString(reader["Наименование товара"]);
+                                textUnit.Text = Convert.ToString(reader["Единица измерения"]);
+                                textSupplier.Text = Convert.ToString(reader["Поставщик"]);
+                                richTextDescription.Text = Convert.ToString(reader["Описание товара"]);
 
                                 numericPrice.Value = reader["Цена"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["Цена"]);
                                 numericCount.Value = reader["Кол-во на складе"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["Кол-во на складе"]);
@@ -276,20 +279,25 @@ namespace demo
             }
         }
 
-        private void buttonSave_Click(object sender, EventArgs e)
+        private void btnCancel_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
+
+        private void btnSave_Click(object sender, EventArgs e)
         {
             if (!ValidateProductData())
                 return;
 
             string message;
 
-            if (productId == 0)
+            if (productId > 0)
             {
-                message = "Вы уверены, что хотите добавить товар?";
+                message = "Вы уверены, что хотите изменить товар?";
             }
             else
             {
-                message = "Вы уверены, что хотите изменить товар?";
+                message = "Вы уверены, что хотите добавить товар?";
             }
 
             DialogResult result = MessageBox.Show(
@@ -336,7 +344,7 @@ namespace demo
             }
         }
 
-        private void buttonDelete_Click(object sender, EventArgs e)
+        private void btnDelete_Click(object sender, EventArgs e)
         {
             DialogResult result = MessageBox.Show(
                 "Вы уверены, что хотите удалить этот товар?",
@@ -350,7 +358,7 @@ namespace demo
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(CacheSession.connectionString))
+                using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
 
@@ -366,7 +374,9 @@ namespace demo
                         return;
                     }
 
-                    string sql = @"DELETE FROM [Товар] WHERE [id товара] = @id";
+                    string sql = @"
+                DELETE FROM [Товар]
+                WHERE [id товара] = @id";
 
                     using (SqlCommand cmd = new SqlCommand(sql, connection))
                     {
@@ -398,7 +408,10 @@ namespace demo
 
         private bool ProductInOrders(SqlConnection connection)
         {
-            string sql = @"SELECT COUNT(*) FROM [Позиция] WHERE [id товара] = @id";
+            string sql = @"
+            SELECT COUNT(*)
+            FROM [Позиция]
+            WHERE [id товара] = @id";
 
             using (SqlCommand cmd = new SqlCommand(sql, connection))
             {
@@ -412,40 +425,44 @@ namespace demo
 
         private bool ValidateProductData()
         {
-            if (string.IsNullOrWhiteSpace(textBoxArticle.Text))
+            if (string.IsNullOrWhiteSpace(textArticle.Text))
             {
-                MessageBox.Show("Введите артикул товара.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Введите артикул товара.", "Проверка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                textArticle.Focus();
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(textBoxName.Text))
+            if (string.IsNullOrWhiteSpace(textName.Text))
             {
-                MessageBox.Show("Введите наименование товара.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Введите наименование товара.", "Проверка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                textName.Focus();
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(textBoxUnit.Text))
+            if (string.IsNullOrWhiteSpace(textUnit.Text))
             {
-                MessageBox.Show("Введите единицу измерения.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Введите единицу измерения.", "Проверка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                textUnit.Focus();
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(textBoxSupplier.Text))
+            if (string.IsNullOrWhiteSpace(textSupplier.Text))
             {
-                MessageBox.Show("Введите поставщика.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Введите поставщика.", "Проверка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                textSupplier.Focus();
                 return false;
             }
 
             if (comboBoxCategory.SelectedItem == null)
             {
-                MessageBox.Show("Выберите категорию товара.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Выберите категорию товара.", "Проверка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 comboBoxCategory.Focus();
                 return false;
             }
 
             if (comboBoxManufacturer.SelectedItem == null)
             {
-                MessageBox.Show("Выберите производителя.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Выберите производителя.", "Проверка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 comboBoxManufacturer.Focus();
                 return false;
             }
@@ -568,7 +585,7 @@ namespace demo
 
         private void UpdateProduct(string photoFileName)
         {
-            using (SqlConnection connection = new SqlConnection(CacheSession.connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
 
@@ -591,16 +608,16 @@ namespace demo
                 using (SqlCommand cmd = new SqlCommand(sql, connection))
                 {
                     cmd.Parameters.AddWithValue("@id", productId);
-                    cmd.Parameters.AddWithValue("@article", textBoxArticle.Text.Trim());
-                    cmd.Parameters.AddWithValue("@name", textBoxName.Text.Trim());
-                    cmd.Parameters.AddWithValue("@unit", textBoxUnit.Text.Trim());
+                    cmd.Parameters.AddWithValue("@article", textArticle.Text.Trim());
+                    cmd.Parameters.AddWithValue("@name", textName.Text.Trim());
+                    cmd.Parameters.AddWithValue("@unit", textUnit.Text.Trim());
                     cmd.Parameters.AddWithValue("@price", numericPrice.Value);
-                    cmd.Parameters.AddWithValue("@supplier", textBoxSupplier.Text.Trim());
+                    cmd.Parameters.AddWithValue("@supplier", textSupplier.Text.Trim());
                     cmd.Parameters.AddWithValue("@manufacturer", comboBoxManufacturer.SelectedItem.ToString());
                     cmd.Parameters.AddWithValue("@category", comboBoxCategory.SelectedItem.ToString());
                     cmd.Parameters.AddWithValue("@discount", numericDiscount.Value);
                     cmd.Parameters.AddWithValue("@count", numericCount.Value);
-                    cmd.Parameters.AddWithValue("@description", richTextBoxDescription.Text.Trim());
+                    cmd.Parameters.AddWithValue("@description", richTextDescription.Text.Trim());
                     cmd.Parameters.AddWithValue("@photo", photoFileName);
 
                     cmd.ExecuteNonQuery();
@@ -610,7 +627,7 @@ namespace demo
 
         private void InsertProduct(string photoFileName)
         {
-            using (SqlConnection connection = new SqlConnection(CacheSession.connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
 
@@ -646,49 +663,19 @@ namespace demo
 
                 using (SqlCommand cmd = new SqlCommand(sql, connection))
                 {
-                    cmd.Parameters.AddWithValue("@article", textBoxArticle.Text.Trim());
-                    cmd.Parameters.AddWithValue("@name", textBoxName.Text.Trim());
-                    cmd.Parameters.AddWithValue("@unit", textBoxUnit.Text.Trim());
+                    cmd.Parameters.AddWithValue("@article", textArticle.Text.Trim());
+                    cmd.Parameters.AddWithValue("@name", textName.Text.Trim());
+                    cmd.Parameters.AddWithValue("@unit", textUnit.Text.Trim());
                     cmd.Parameters.AddWithValue("@price", numericPrice.Value);
-                    cmd.Parameters.AddWithValue("@supplier", textBoxSupplier.Text.Trim());
+                    cmd.Parameters.AddWithValue("@supplier", textSupplier.Text.Trim());
                     cmd.Parameters.AddWithValue("@manufacturer", comboBoxManufacturer.SelectedItem.ToString());
                     cmd.Parameters.AddWithValue("@category", comboBoxCategory.SelectedItem.ToString());
                     cmd.Parameters.AddWithValue("@discount", numericDiscount.Value);
                     cmd.Parameters.AddWithValue("@count", numericCount.Value);
-                    cmd.Parameters.AddWithValue("@description", richTextBoxDescription.Text.Trim());
+                    cmd.Parameters.AddWithValue("@description", richTextDescription.Text.Trim());
                     cmd.Parameters.AddWithValue("@photo", photoFileName);
 
                     cmd.ExecuteNonQuery();
-                }
-            }
-        }
-
-        private void buttonCancel_Click(object sender, EventArgs e)
-        {
-            Close();
-        }
-
-        private void buttonPicture_Click(object sender, EventArgs e)
-        {
-            using (OpenFileDialog dialog = new OpenFileDialog())
-            {
-                dialog.Title = "Выберите изображение товара";
-                dialog.Filter = "Изображения|*.jpg;*.jpeg;*.png;*.bmp";
-
-                if (dialog.ShowDialog() == DialogResult.OK)
-                {
-                    if (!CheckImageSize(dialog.FileName))
-                        return;
-
-                    selectedPhotoPath = dialog.FileName;
-
-                    if (ProductPicture.Image != null)
-                    {
-                        ProductPicture.Image.Dispose();
-                        ProductPicture.Image = null;
-                    }
-
-                    ProductPicture.Image = LoadImageFromFile(selectedPhotoPath);
                 }
             }
         }

@@ -9,19 +9,48 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace demo
+namespace demoA
 {
-    public partial class ProductItem : UserControl
+    public partial class ProductCard : UserControl
     {
         public int ProductId { get; private set; }
 
-        public event EventHandler ProductSelect;
-        public ProductItem()
+        public event EventHandler ProductSelected;
+        public ProductCard()
         {
-            //commit
             InitializeComponent();
 
-            RegisterClick(this);
+            RegisterClickEvents(this);
+        }
+
+        private void RegisterClickEvents(Control parent)
+        {
+            parent.Click += ProductCard_Click;
+
+            foreach (Control control in parent.Controls)
+            {
+                RegisterClickEvents(control);
+            }
+        }
+
+        private void ProductCard_Click(object sender, EventArgs e)
+        {
+            if (CurrentSession.CurrentUser.Role != Session.UserRole.Admin)
+            {
+                return;
+            }
+
+            ProductSelected?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void SetCursorForAllControls(Control parent, Cursor cursor)
+        {
+            parent.Cursor = cursor;
+
+            foreach (Control control in parent.Controls)
+            {
+                SetCursorForAllControls(control, cursor);
+            }
         }
 
         public void SetProductData(
@@ -37,7 +66,7 @@ namespace demo
             decimal discount,
             string photo)
         {
-            if (CacheSession.user.Role == Session.UserRole.Admin)
+            if (CurrentSession.CurrentUser.Role == Session.UserRole.Admin)
                 Cursor = Cursors.Hand;
 
             ProductId = productId;
@@ -51,7 +80,7 @@ namespace demo
             labelUnit.Text = unit;
             labelCount.Text = count.ToString();
 
-            pictureBoxProduct.Image = LoadProductImage(photo);
+            ProductPicture.Image = LoadProductImage(photo);
 
             if (discount > 0)
             {
@@ -140,36 +169,6 @@ namespace demo
             }
 
             return null;
-        }
-
-        private void RegisterClick(Control parent)
-        {
-            parent.Click += ProductCard_Click;
-
-            foreach (Control control in parent.Controls)
-            {
-                RegisterClick(control);
-            }
-        }
-
-        private void SetCursorForAllControls(Control parent, Cursor cursor)
-        {
-            parent.Cursor = cursor;
-
-            foreach (Control control in parent.Controls)
-            {
-                SetCursorForAllControls(control, cursor);
-            }
-        }
-
-        private void ProductCard_Click(object sender, EventArgs e)
-        {
-            if (CacheSession.user.Role != Session.UserRole.Admin)
-            {
-                return;
-            }
-
-            ProductSelect?.Invoke(this, EventArgs.Empty);
         }
     }
 }

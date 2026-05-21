@@ -9,29 +9,31 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace demo
+namespace demoA
 {
-    public partial class Auth : Form
+    public partial class Login : Form
     {
-        public Auth()
+        static string connectionString = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=DemoExam;Integrated Security=true";
+
+        public Login()
         {
             InitializeComponent();
         }
 
-        private void buttonLogin_Click(object sender, EventArgs e)
+        private void btnLogin_Click(object sender, EventArgs e)
         {
-            string login = textBoxLogin.Text.Trim();
-            string password = textBoxPassword.Text.Trim();
+            string login = textLogin.Text.Trim();
+            string password = textPassword.Text;
 
             if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(password))
             {
-                MessageBox.Show("Логин и пароль не могут быть пустые!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Введите логин и пароль.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(CacheSession.connectionString))
+                using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
 
@@ -55,9 +57,9 @@ namespace demo
                             {
                                 string roleName = Convert.ToString(r["RoleName"]);
 
-                                CacheSession.user = new Session
+                                CurrentSession.CurrentUser = new Session
                                 {
-                                    Role = Role(roleName),
+                                    Role = ParseRole(roleName),
                                     SurName = Convert.ToString(r["SurName"]),
                                     FirstName = Convert.ToString(r["FirstName"]),
                                     MiddleName = Convert.ToString(r["MiddleName"])
@@ -80,7 +82,7 @@ namespace demo
             }
         }
 
-        private Session.UserRole Role(string roleName)
+        private Session.UserRole ParseRole(string roleName)
         {
             switch (roleName)
             {
@@ -98,9 +100,9 @@ namespace demo
             }
         }
 
-        private void buttonGuest_Click(object sender, EventArgs e)
+        private void btnGuest_Click(object sender, EventArgs e)
         {
-            CacheSession.user = new Session
+            CurrentSession.CurrentUser = new Session
             {
                 Role = Session.UserRole.Guest
             };
