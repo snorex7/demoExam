@@ -14,7 +14,6 @@ namespace demoA
     public partial class Login : Form
     {
         static string connectionString = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=DemoExam;Integrated Security=true";
-        SqlConnection connection = new SqlConnection(connectionString);
 
         public Login()
         {

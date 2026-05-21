@@ -28,8 +28,10 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
+            this.flowLayoutProducts = new System.Windows.Forms.FlowLayoutPanel();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.btnAddProduct = new System.Windows.Forms.Button();
+            this.btnOrders = new System.Windows.Forms.Button();
             this.comboBoxRemain = new System.Windows.Forms.ComboBox();
             this.labelRemain = new System.Windows.Forms.Label();
             this.comboBoxSupplier = new System.Windows.Forms.ComboBox();
@@ -44,15 +46,21 @@
             this.panelTitle.SuspendLayout();
             this.SuspendLayout();
             // 
-            // flowLayoutPanel1
+            // flowLayoutProducts
             // 
-            this.flowLayoutPanel1.Location = new System.Drawing.Point(2, 134);
-            this.flowLayoutPanel1.Name = "flowLayoutPanel1";
-            this.flowLayoutPanel1.Size = new System.Drawing.Size(980, 426);
-            this.flowLayoutPanel1.TabIndex = 5;
+            this.flowLayoutProducts.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.flowLayoutProducts.AutoScroll = true;
+            this.flowLayoutProducts.Location = new System.Drawing.Point(2, 134);
+            this.flowLayoutProducts.Name = "flowLayoutProducts";
+            this.flowLayoutProducts.Size = new System.Drawing.Size(1230, 426);
+            this.flowLayoutProducts.TabIndex = 5;
             // 
             // panel1
             // 
+            this.panel1.Controls.Add(this.btnAddProduct);
+            this.panel1.Controls.Add(this.btnOrders);
             this.panel1.Controls.Add(this.comboBoxRemain);
             this.panel1.Controls.Add(this.labelRemain);
             this.panel1.Controls.Add(this.comboBoxSupplier);
@@ -61,18 +69,48 @@
             this.panel1.Controls.Add(this.labelSearch);
             this.panel1.Location = new System.Drawing.Point(2, 66);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(980, 65);
+            this.panel1.Size = new System.Drawing.Size(1230, 65);
             this.panel1.TabIndex = 4;
+            // 
+            // btnAddProduct
+            // 
+            this.btnAddProduct.BackColor = System.Drawing.Color.MediumSpringGreen;
+            this.btnAddProduct.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
+            this.btnAddProduct.Font = new System.Drawing.Font("Times New Roman", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.btnAddProduct.Location = new System.Drawing.Point(903, 25);
+            this.btnAddProduct.Name = "btnAddProduct";
+            this.btnAddProduct.Size = new System.Drawing.Size(117, 23);
+            this.btnAddProduct.TabIndex = 10;
+            this.btnAddProduct.Text = "Добавить товар";
+            this.btnAddProduct.UseVisualStyleBackColor = false;
+            this.btnAddProduct.Visible = false;
+            this.btnAddProduct.Click += new System.EventHandler(this.btnAddProduct_Click);
+            // 
+            // btnOrders
+            // 
+            this.btnOrders.BackColor = System.Drawing.Color.MediumSpringGreen;
+            this.btnOrders.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
+            this.btnOrders.Font = new System.Drawing.Font("Times New Roman", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.btnOrders.Location = new System.Drawing.Point(745, 25);
+            this.btnOrders.Name = "btnOrders";
+            this.btnOrders.Size = new System.Drawing.Size(117, 23);
+            this.btnOrders.TabIndex = 4;
+            this.btnOrders.Text = "Заказы";
+            this.btnOrders.UseVisualStyleBackColor = false;
+            this.btnOrders.Visible = false;
+            this.btnOrders.Click += new System.EventHandler(this.btnOrders_Click);
             // 
             // comboBoxRemain
             // 
             this.comboBoxRemain.BackColor = System.Drawing.Color.MediumSpringGreen;
+            this.comboBoxRemain.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBoxRemain.Font = new System.Drawing.Font("Times New Roman", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.comboBoxRemain.FormattingEnabled = true;
             this.comboBoxRemain.Location = new System.Drawing.Point(557, 25);
             this.comboBoxRemain.Name = "comboBoxRemain";
             this.comboBoxRemain.Size = new System.Drawing.Size(121, 23);
             this.comboBoxRemain.TabIndex = 9;
+            this.comboBoxRemain.SelectedIndexChanged += new System.EventHandler(this.FilterChanged);
             // 
             // labelRemain
             // 
@@ -87,12 +125,14 @@
             // comboBoxSupplier
             // 
             this.comboBoxSupplier.BackColor = System.Drawing.Color.MediumSpringGreen;
+            this.comboBoxSupplier.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBoxSupplier.Font = new System.Drawing.Font("Times New Roman", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.comboBoxSupplier.FormattingEnabled = true;
             this.comboBoxSupplier.Location = new System.Drawing.Point(336, 25);
             this.comboBoxSupplier.Name = "comboBoxSupplier";
             this.comboBoxSupplier.Size = new System.Drawing.Size(121, 23);
             this.comboBoxSupplier.TabIndex = 7;
+            this.comboBoxSupplier.SelectedIndexChanged += new System.EventHandler(this.FilterChanged);
             // 
             // labelSupplier
             // 
@@ -113,6 +153,7 @@
             this.textBoxSearch.Name = "textBoxSearch";
             this.textBoxSearch.Size = new System.Drawing.Size(148, 21);
             this.textBoxSearch.TabIndex = 5;
+            this.textBoxSearch.TextChanged += new System.EventHandler(this.FilterChanged);
             // 
             // labelSearch
             // 
@@ -131,7 +172,7 @@
             this.panelTitle.Controls.Add(this.labelProducts);
             this.panelTitle.Location = new System.Drawing.Point(2, 0);
             this.panelTitle.Name = "panelTitle";
-            this.panelTitle.Size = new System.Drawing.Size(980, 65);
+            this.panelTitle.Size = new System.Drawing.Size(1230, 65);
             this.panelTitle.TabIndex = 3;
             // 
             // btnExitUser
@@ -139,7 +180,7 @@
             this.btnExitUser.BackColor = System.Drawing.Color.MediumSpringGreen;
             this.btnExitUser.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
             this.btnExitUser.Font = new System.Drawing.Font("Times New Roman", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.btnExitUser.Location = new System.Drawing.Point(854, 12);
+            this.btnExitUser.Location = new System.Drawing.Point(1103, 12);
             this.btnExitUser.Name = "btnExitUser";
             this.btnExitUser.Size = new System.Drawing.Size(117, 23);
             this.btnExitUser.TabIndex = 3;
@@ -150,7 +191,7 @@
             // labelUser
             // 
             this.labelUser.Font = new System.Drawing.Font("Times New Roman", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.labelUser.Location = new System.Drawing.Point(336, 44);
+            this.labelUser.Location = new System.Drawing.Point(585, 40);
             this.labelUser.Name = "labelUser";
             this.labelUser.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.labelUser.Size = new System.Drawing.Size(635, 23);
@@ -172,8 +213,9 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(984, 561);
-            this.Controls.Add(this.flowLayoutPanel1);
+            this.BackColor = System.Drawing.Color.White;
+            this.ClientSize = new System.Drawing.Size(1234, 561);
+            this.Controls.Add(this.flowLayoutProducts);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.panelTitle);
             this.Name = "Products";
@@ -189,7 +231,7 @@
 
         #endregion
 
-        private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel1;
+        private System.Windows.Forms.FlowLayoutPanel flowLayoutProducts;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.ComboBox comboBoxRemain;
         private System.Windows.Forms.Label labelRemain;
@@ -201,5 +243,7 @@
         private System.Windows.Forms.Button btnExitUser;
         private System.Windows.Forms.Label labelUser;
         private System.Windows.Forms.Label labelProducts;
+        private System.Windows.Forms.Button btnOrders;
+        private System.Windows.Forms.Button btnAddProduct;
     }
 }
